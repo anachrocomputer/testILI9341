@@ -212,6 +212,7 @@ void setup (void)
    drawRect (0, y, DotSpacing * 7, w, ILI9341_BLACK);
 #endif
 
+   // Initialise dot colour array to black
    for (y = 0; y < 7; y++)
       for (x = 0; x < (4 * 5); x++)
          DotColr[y][x] = ILI9341_BLACK;
@@ -247,7 +248,8 @@ void loop (void)
 //  3 to 14ms with drawRect and show_dot holding dot state
 //       delay_centi (5);
       }
-      
+
+      // Blink two LEDs
       if (digitalRead (LED_PIN) == LOW) {
          digitalWrite (PC13, HIGH);
          digitalWrite (LED_PIN, HIGH);
@@ -259,6 +261,134 @@ void loop (void)
          
       hue++;
    }
+}
+
+
+/* show_clock --- display four digits of hex from 16-bit unsigned integer */
+
+void show_clock (const unsigned int display, const unsigned short int colr)
+{
+#ifdef SHOW_DOT_GRID
+  show_dot_grid (0, colr);
+  show_dot_grid (1, colr);
+  show_dot_grid (2, colr);
+  show_dot_grid (3, colr);
+#else
+  show_digit (0, (display >> 12) & 0x0f, colr);
+  show_digit (1, (display >>  8) & 0x0f, colr);
+  show_digit (2, (display >>  4) & 0x0f, colr);
+  show_digit (3, (display >>  0) & 0x0f, colr);
+#endif 
+}
+
+
+/* show_dot_grid --- for debugging, show the full 4x7 grid of dots that form the display */
+
+void show_dot_grid (int pos, const unsigned short int colr)
+{
+  int i, j;
+
+  for (i = 0; i < 4; i++)
+    for (j = 0; j < 7; j++)
+      show_dot ((pos * 5) + i, j, 1, colr);
+}
+
+
+/* show_digit --- display one hex digit in a specified colour */
+
+void show_digit (int pos, const int digit, const unsigned short int colr)
+{
+//     H C C I    6
+//     B     D    5
+//     B     D    4
+//     J G G K    3
+//     A     E    2
+//     A     E    1
+//     L F F M DP 0
+//     0 1 2 3 4
+   unsigned int segs;
+   static int prevDigit[4] = {-1, -1, -1, -1};
+   static int prevColr[4] = {-1, -1, -1, -1};
+
+   // Save time by doing nothing if the digit is unchanged from last time
+   if ((prevDigit[pos] == digit) && (prevColr[pos] == colr))
+      return;
+      
+   prevDigit[pos] = digit;
+   prevColr[pos] = colr;
+   
+   pos *= 5;
+   segs = HDSPsegtab[digit];
+
+   show_dot (pos + 0, 1, segs & A, colr);
+   show_dot (pos + 0, 2, segs & A, colr);
+    
+   show_dot (pos + 0, 4, segs & B, colr);
+   show_dot (pos + 0, 5, segs & B, colr);
+    
+   show_dot (pos + 1, 6, segs & C, colr);
+   show_dot (pos + 2, 6, segs & C, colr);
+    
+   show_dot (pos + 3, 4, segs & D, colr);
+   show_dot (pos + 3, 5, segs & D, colr);
+    
+   show_dot (pos + 3, 1, segs & E, colr);
+   show_dot (pos + 3, 2, segs & E, colr);
+    
+   show_dot (pos + 1, 0, segs & F, colr);
+   show_dot (pos + 2, 0, segs & F, colr);
+    
+   show_dot (pos + 1, 3, segs & G, colr);
+   show_dot (pos + 2, 3, segs & G, colr);
+    
+   show_dot (pos + 0, 6, segs & H, colr);
+   
+   show_dot (pos + 3, 6, segs & I, colr);
+   
+   show_dot (pos + 0, 3, segs & J, colr);
+   
+   show_dot (pos + 3, 3, segs & K, colr);
+   
+   show_dot (pos + 0, 0, segs & L, colr);
+   
+   show_dot (pos + 3, 0, segs & M, colr);
+   
+   show_dot (pos + 4, 0, segs & DP, colr);
+}
+
+
+/* show_dot --- draw one dot that makes up the grid */
+
+void show_dot (const int dx, const int dy, const int on, unsigned short int colr)
+{
+#ifdef USE_SLOW_DRAWPIXEL
+   int i, j;
+#endif
+   int x, y;
+   
+   if (!on)
+      colr = ILI9341_BLACK;
+      
+   if (DotColr[dy][dx] == colr)
+      return;
+   
+   DotColr[dy][dx] = colr;
+
+#ifdef PORTRAIT
+   x = dx * DotSpacing;
+   y = (6 - dy) * DotSpacing;
+#else
+   x = ((6 - dy) * DotSpacing);
+   y = (319 - DotSpacing) - (dx * DotSpacing) - (dy * DotTilt);
+#endif
+
+#ifdef USE_SLOW_DRAWPIXEL
+   for (i = 0; i < DotSize; i++)
+      for (j = 0; j < DotSize; j++)
+         drawPixel (x + i, y + j, colr);
+#else
+   drawRect (x, y, DotSize, DotSize, colr);
+#endif
 }
 
 
@@ -561,7 +691,10 @@ void drawPixel(short int x, short int y, unsigned short int color)
   digitalWrite (SS_PIN, HIGH);
 }
 
-void drawRect (int x1, int y1, int w, int h, unsigned short int colr)
+
+/* drawRect --- draw a rectangle in the specified colour */
+
+void drawRect (const int x1, const int y1, const int w, const int h, const unsigned short int colr)
 {
    unsigned char hi, lo;
    int i;
@@ -611,112 +744,6 @@ void drawTile (int x0, int y0, unsigned short int tile[8][8])
          drawPixel (x0 + x, y0 + y, tile[y][x]);
 }
 #endif
-
-
-void show_dot (const int dx, const int dy, const int on, unsigned short int colr)
-{
-// int i, j;
-   int x, y;
-   
-   if (!on)
-      colr = ILI9341_BLACK;
-      
-   if (DotColr[dy][dx] == colr)
-      return;
-   
-   DotColr[dy][dx] = colr;
-
-#ifdef PORTRAIT
-   x = dx * DotSpacing;
-   y = (6 - dy) * DotSpacing;
-#else
-   x = ((6 - dy) * DotSpacing);
-   y = (319 - DotSpacing) - (dx * DotSpacing) - (dy * DotTilt);
-#endif
-   
-   drawRect (x, y, DotSize, DotSize, colr);
-
-//    for (i = 0; i < DotSize; i++)
-//       for (j = 0; j < DotSize; j++)
-//          drawPixel (x + i, y + j, colr);
-//    for (i = 0; i < DotSize; i++)
-//       for (j = 0; j < DotSize; j++)
-//          drawPixel (x + i, y + j, ILI9341_BLACK);
-}
-
-
-void show_digit (int pos, const int digit, const unsigned short int colr)
-{
-//     H C C I    6
-//     B     D    5
-//     B     D    4
-//     J G G K    3
-//     A     E    2
-//     A     E    1
-//     L F F M DP 0
-//     0 1 2 3 4
-   unsigned int segs;
-   static int prevDigit[4] = {-1, -1, -1, -1};
-   static int prevColr[4] = {-1, -1, -1, -1};
-// int i, j;
-
-// for (i = 0; i < 4; i++)
-//    for (j = 0; j < 7; j++)
-//       show_dot ((pos * 5) + i, j, 1, colr);
-
-   if ((prevDigit[pos] == digit) && (prevColr[pos] == colr))
-      return;
-      
-   prevDigit[pos] = digit;
-   prevColr[pos] = colr;
-   
-   pos *= 5;
-   segs = HDSPsegtab[digit];
-
-   show_dot (pos + 0, 1, segs & A, colr);
-   show_dot (pos + 0, 2, segs & A, colr);
-    
-   show_dot (pos + 0, 4, segs & B, colr);
-   show_dot (pos + 0, 5, segs & B, colr);
-    
-   show_dot (pos + 1, 6, segs & C, colr);
-   show_dot (pos + 2, 6, segs & C, colr);
-    
-   show_dot (pos + 3, 4, segs & D, colr);
-   show_dot (pos + 3, 5, segs & D, colr);
-    
-   show_dot (pos + 3, 1, segs & E, colr);
-   show_dot (pos + 3, 2, segs & E, colr);
-    
-   show_dot (pos + 1, 0, segs & F, colr);
-   show_dot (pos + 2, 0, segs & F, colr);
-    
-   show_dot (pos + 1, 3, segs & G, colr);
-   show_dot (pos + 2, 3, segs & G, colr);
-    
-   show_dot (pos + 0, 6, segs & H, colr);
-   
-   show_dot (pos + 3, 6, segs & I, colr);
-   
-   show_dot (pos + 0, 3, segs & J, colr);
-   
-   show_dot (pos + 3, 3, segs & K, colr);
-   
-   show_dot (pos + 0, 0, segs & L, colr);
-   
-   show_dot (pos + 3, 0, segs & M, colr);
-   
-   show_dot (pos + 4, 0, segs & DP, colr);
-}
-
-
-void show_clock (unsigned int display, unsigned short int colr)
-{
-   show_digit (0, (display >> 12) & 0x0f, colr);
-   show_digit (1, (display >>  8) & 0x0f, colr);
-   show_digit (2, (display >>  4) & 0x0f, colr);
-   show_digit (3, (display >>  0) & 0x0f, colr);
-}
 
 
 /* hsvtorgb --- convert HSV colour to RGB */
@@ -790,8 +817,11 @@ void hsvtorgb (int *ir, int *ig, int *ib, int ih, int is, int iv)
 }
 
 
+/* rgbtoili --- convert RGB colour to packed 16-bit format */
+
 unsigned short int rgbtoili (const int r, const int g, const int b)
 {
-   return ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
+  // ILI941 uses 5 bit red, 6 bit green, 5 bit blue
+  return ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
 }
 
