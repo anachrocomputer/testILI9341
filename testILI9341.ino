@@ -15,58 +15,98 @@
 #define MAXX (240)
 #define MAXY (320)
 
-#define ILI9341_NOP     0x00
-#define ILI9341_SWRESET 0x01
-#define ILI9341_RDDID   0x04
-#define ILI9341_RDDST   0x09
+#define ILI9341_NOP        0x00
+#define ILI9341_SWRESET    0x01
+#define ILI9341_RDDID      0x04
+#define ILI9341_RDSTATUS   0x09
+#define ILI9341_RDMODE     0x0A
+#define ILI9341_RDMADCTL   0x0B
+#define ILI9341_RDPIXFMT   0x0C
+#define ILI9341_RDIMGFMT   0x0D
+#define ILI9341_RDSIGMODE  0x0E
+#define ILI9341_RDSELFDIAG 0x0F
 
-#define ILI9341_SLPIN   0x10
-#define ILI9341_SLPOUT  0x11
-#define ILI9341_PTLON   0x12
-#define ILI9341_NORON   0x13
+#define ILI9341_SLPIN   0x10    // Enter sleep mode
+#define ILI9341_SLPOUT  0x11    // Exit sleep mode
+#define ILI9341_PTLON   0x12    // Enter partial mode
+#define ILI9341_NORON   0x13    // Enter normal mode
 
-#define ILI9341_RDMODE  0x0A
-#define ILI9341_RDMADCTL  0x0B
-#define ILI9341_RDPIXFMT  0x0C
-#define ILI9341_RDIMGFMT  0x0A
-#define ILI9341_RDSELFDIAG  0x0F
+#define ILI9341_INVOFF  0x20    // Inversion off
+#define ILI9341_INVON   0x21    // Inversion on
+#define ILI9341_GAMMASET 0x26   // Set gamma curve
+#define ILI9341_DISPOFF 0x28    // Display off
+#define ILI9341_DISPON  0x29    // Display on
 
-#define ILI9341_INVOFF  0x20
-#define ILI9341_INVON   0x21
-#define ILI9341_GAMMASET 0x26
-#define ILI9341_DISPOFF 0x28
-#define ILI9341_DISPON  0x29
+#define ILI9341_CASET   0x2A    // Column address set
+#define ILI9341_PASET   0x2B    // Page address set
+#define ILI9341_RAMWR   0x2C    // Memory write
+#define ILI9341_RGBSET  0x2D    // Colour set
+#define ILI9341_RAMRD   0x2E    // Memory read
 
-#define ILI9341_CASET   0x2A
-#define ILI9341_PASET   0x2B
-#define ILI9341_RAMWR   0x2C
-#define ILI9341_RAMRD   0x2E
+#define ILI9341_PTLAR   0x30    // Partial area
+#define ILI9341_VSCRDEF 0x33    // Vertical scrolling definition
+#define ILI9341_TEOFF   0x34    // Tearing effect line off
+#define ILI9341_TEON    0x35    // Tearing effect line on
+#define ILI9341_MADCTL  0x36    // Memory access control
+#define ILI9341_VSCRSADD 0x37   // Vertical scrolling start address
+#define ILI9341_IDMOFF  0x38    // Idle mode off
+#define ILI9341_IDMON   0x39    // Idle mode on
+#define ILI9341_PIXSET  0x3A    // Pixel format set
+#define ILI9341_WRMEMC  0x3C    // Write memory continue
+#define ILI9341_RDMEMC  0x3E    // Read memory continue
 
-#define ILI9341_PTLAR   0x30
-#define ILI9341_MADCTL  0x36
-#define ILI9341_PIXFMT  0x3A
+#define ILI9341_SETTSC  0x44    // Set tear scanline
+#define ILI9341_GETSCL  0x45    // Get scanline
 
-#define ILI9341_FRMCTR1 0xB1
-#define ILI9341_FRMCTR2 0xB2
-#define ILI9341_FRMCTR3 0xB3
-#define ILI9341_INVCTR  0xB4
-#define ILI9341_DFUNCTR 0xB6
+#define ILI9341_WRDISBV 0x51    // Write display brightness
+#define ILI9341_RDDISBV 0x52    // Read display brightness
+#define ILI9341_WRCTRLD 0x53    // Write control display
+#define ILI9341_RDCTRLD 0x54    // Read control display
+#define ILI9341_WRCABC  0x55    // Write content adaptive brightness control
+#define ILI9341_RDCABC  0x56    // Read content adaptive brightness control
+#define ILI9341_WRCMIN  0x5E    // Write CABC minimum brightness
+#define ILI9341_RDCMIN  0x5F    // Read CABC minimum brightness
 
-#define ILI9341_PWCTR1  0xC0
-#define ILI9341_PWCTR2  0xC1
+#define ILI9341_IFMODE  0xB0    // RGB interface signal control
+#define ILI9341_FRMCTR1 0xB1    // Frame rate control (normal/full colours)
+#define ILI9341_FRMCTR2 0xB2    // Frame rate control (idle/8 colours)
+#define ILI9341_FRMCTR3 0xB3    // Frame rate control (partial/full colours)
+#define ILI9341_INVCTR  0xB4    // Display inversion control
+#define ILI9341_PRCTR   0xB5    // Blanking porch control
+#define ILI9341_DISCTRL 0xB6    // Display function control
+#define ILI9341_ETMOD   0x87    // Entry mode set
+#define ILI9341_BKLIT1  0xB8    // Backlight control 1
+#define ILI9341_BKLIT2  0xB9    // Backlight control 2
+#define ILI9341_BKLIT3  0xBA    // Backlight control 3
+#define ILI9341_BKLIT4  0xBB    // Backlight control 4
+#define ILI9341_BKLIT5  0xBC    // Backlight control 5
+#define ILI9341_BKLIT7  0xBE    // Backlight control 7
+#define ILI9341_BKLIT8  0xBF    // Backlight control 8
+
+#define ILI9341_PWCTR1  0xC0    // Power control 1
+#define ILI9341_PWCTR2  0xC1    // Power control 2
 #define ILI9341_PWCTR3  0xC2
 #define ILI9341_PWCTR4  0xC3
 #define ILI9341_PWCTR5  0xC4
-#define ILI9341_VMCTR1  0xC5
-#define ILI9341_VMCTR2  0xC7
+#define ILI9341_VMCTR1  0xC5    // VCOM control 1
+#define ILI9341_VMCTR2  0xC7    // VCOM control 2
 
-#define ILI9341_RDID1   0xDA
-#define ILI9341_RDID2   0xDB
-#define ILI9341_RDID3   0xDC
-#define ILI9341_RDID4   0xDD
+#define ILI9341_NVMWR   0xD0    // NV memory write
+#define ILI9341_NVMPKEY 0xD1    // NV memory protection key
+#define ILI9341_RDNVM   0xD2    // NV memory status read
+#define ILI9341_RDID4   0xD3    // Read ID 4
+#define ILI9341_RDID1   0xDA    // Read ID 1
+#define ILI9341_RDID2   0xDB    // Read ID 2
+#define ILI9341_RDID3   0xDC    // Read ID 3
+//#define ILI9341_RDID4   0xDD
 
-#define ILI9341_GMCTRP1 0xE0
-#define ILI9341_GMCTRN1 0xE1
+#define ILI9341_GMCTRP1 0xE0    // Positive gamma correction
+#define ILI9341_GMCTRN1 0xE1    // Negative gamma correction
+#define ILI9341_DGAMCTRL1 0xE2  // Digital gamma control 1
+#define ILI9341_DGAMCTRL2 0xE3  // Digital gamma control 2
+
+#define ILI9341_IFCTL   0xF6    // Interface control
+
 /*
 #define ILI9341_PWCTR6  0xFC
 
@@ -168,7 +208,7 @@ void setup (void)
   
    ili9341_begin ();
    
-   drawRect (0, 0, MAXX, MAXY, 0);
+   drawRect (0, 0, MAXX, MAXY, ILI9341_BLUE);
 
 // for (y = 0; y < MAXY; y++)
 //    for (x = 0; x < MAXX; x++)
@@ -585,11 +625,11 @@ void ili9341_begin (void)
   writedata(0x00); 
   writedata(0x00); 
  
-  writecommand(ILI9341_PWCTR1);    //Power control 
-  writedata(0x23);   //VRH[5:0] 
+  writecommand(ILI9341_PWCTR1);    // Power control 1
+  writedata(0x23);                 // VRH[5:0] 4.50V (default 4.60V 0x21)
  
-  writecommand(ILI9341_PWCTR2);    //Power control 
-  writedata(0x10);   //SAP[2:0];BT[3:0] 
+  writecommand(ILI9341_PWCTR2);    // Power control 2
+  writedata(0x10);                 // SAP[2:0];BT[3:0]
  
   writecommand(ILI9341_VMCTR1);    //VCM control 
   writedata(0x3e);
@@ -601,24 +641,24 @@ void ili9341_begin (void)
   writecommand(ILI9341_MADCTL);    // Memory Access Control 
   writedata(0x48);
 
-  writecommand(ILI9341_PIXFMT);    
-  writedata(0x55); 
+  writecommand(ILI9341_PIXSET);    // Pixel format set
+  writedata(0x55);                 // 16 bits/pixel for both RGB and MCU
   
-  writecommand(ILI9341_FRMCTR1);    
-  writedata(0x00);  
-  writedata(0x18); 
+  writecommand(ILI9341_FRMCTR1);   // Frame rate control
+  writedata(0x00);                 // Division ratio (fosc)
+  writedata(0x18);                 // Clocks per line 79hz (default 1B: 70Hz)
  
-  writecommand(ILI9341_DFUNCTR);    // Display Function Control 
-  writedata(0x08); 
+  writecommand(ILI9341_DISCTRL);    // Display Function Control 
+  writedata(0x08);                  // (default 0x0A)
   writedata(0x82);
   writedata(0x27);  
  
-  writecommand(0xF2);    // 3Gamma Function Disable 
-  writedata(0x00); 
- 
-  writecommand(ILI9341_GAMMASET);    //Gamma curve selected 
-  writedata(0x01); 
- 
+  writecommand(0xF2);    // 3Gamma Function Disable
+  writedata(0x00);
+
+  writecommand(ILI9341_GAMMASET);    // Gamma curve select
+  writedata(0x01);                   // Gamma curve 1 (the only valid one)
+
   writecommand(ILI9341_GMCTRP1);    //Set Gamma 
   writedata(0x0F); 
   writedata(0x31); 
@@ -660,7 +700,10 @@ void ili9341_begin (void)
   writecommand(ILI9341_DISPON);    //Display on 
 }
 
-void setAddrWindow(unsigned short int x0, unsigned short int y0, unsigned short int x1, unsigned short int y1)
+
+/* setAddrWindow --- set the address window, the rectangular region we can write into */
+
+void setAddrWindow(const unsigned short int x0, const unsigned short int y0, const unsigned short int x1, const unsigned short int y1)
 {
   writecommand(ILI9341_CASET); // Column addr set
   writedata(x0 >> 8);
@@ -669,12 +712,12 @@ void setAddrWindow(unsigned short int x0, unsigned short int y0, unsigned short 
   writedata(x1 & 0xFF);     // XEND
 
   writecommand(ILI9341_PASET); // Row addr set
-  writedata(y0>>8);
-  writedata(y0);     // YSTART
-  writedata(y1>>8);
-  writedata(y1);     // YEND
+  writedata(y0 >> 8);
+  writedata(y0 & 0xFF);     // YSTART
+  writedata(y1 >> 8);
+  writedata(y1 & 0xFF);     // YEND
 
-  writecommand(ILI9341_RAMWR); // write to RAM
+  writecommand(ILI9341_RAMWR); // Enable writing to RAM
 }
 
 
