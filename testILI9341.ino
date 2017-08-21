@@ -90,6 +90,8 @@
 #define ILI9341_PWCTR5  0xC4
 #define ILI9341_VMCTR1  0xC5    // VCOM control 1
 #define ILI9341_VMCTR2  0xC7    // VCOM control 2
+#define ILI9341_PWRCTRLA 0xCB   // Power Control A
+#define ILI9341_PWRCTRLB 0xCF   // Power Control B
 
 #define ILI9341_NVMWR   0xD0    // NV memory write
 #define ILI9341_NVMPKEY 0xD1    // NV memory protection key
@@ -104,8 +106,14 @@
 #define ILI9341_GMCTRN1 0xE1    // Negative gamma correction
 #define ILI9341_DGAMCTRL1 0xE2  // Digital gamma control 1
 #define ILI9341_DGAMCTRL2 0xE3  // Digital gamma control 2
+#define ILI9341_DRVTCTRLA 0xE8  // Driver Timing Control A
+#define ILI9341_DRVTCTRLAA 0xE9 // Driver Timing Control AA
+#define ILI9341_DRVTCTRLB 0xEA  // Driver Timing Control B
+#define ILI9341_PWRSEQ  0xED    // Power on sequence control
 
+#define ILI9341_EN3GAMMA   0xF2 // Enable 3 Gamma control
 #define ILI9341_IFCTL   0xF6    // Interface control
+#define ILI9341_PUMPRAT 0xF7    // Pump ratio control
 
 /*
 #define ILI9341_PWCTR6  0xFC
@@ -590,38 +598,38 @@ void ili9341_begin (void)
   digitalWrite (RST_PIN, HIGH);
   delay (150);
   
-  writecommand(0xEF);
+  writecommand(0xEF); // Unknown command
   writedata(0x03);
   writedata(0x80);
   writedata(0x02);
 
-  writecommand(0xCF);  
+  writecommand(ILI9341_PWRCTRLB);   // Power Control B
   writedata(0x00); 
-  writedata(0XC1); 
+  writedata(0XC1);   // PCEQ Enabled for power saving
   writedata(0X30); 
 
-  writecommand(0xED);  
+  writecommand(ILI9341_PWRSEQ);   // Power on sequence control
   writedata(0x64); 
   writedata(0x03); 
   writedata(0X12); 
   writedata(0X81); 
  
-  writecommand(0xE8);  
-  writedata(0x85); 
-  writedata(0x00); 
-  writedata(0x78); 
+  writecommand(ILI9341_DRVTCTRLA);   // Driver Timing Control A
+  writedata(0x85);  // Gate driver non-overlap timing control, default + 1 unit
+  writedata(0x00);  // EQ and CR timing control
+  writedata(0x78);  // pre-charge timing control, default - 2 unit
 
-  writecommand(0xCB);  
+  writecommand(ILI9341_PWRCTRLA);  // Power Control A
   writedata(0x39); 
   writedata(0x2C); 
   writedata(0x00); 
-  writedata(0x34); 
-  writedata(0x02); 
+  writedata(0x34);     // REG_VD, Vcore control, 1.6V
+  writedata(0x02);     // VBC, ddvdh control, 5.6V
  
-  writecommand(0xF7);  
-  writedata(0x20); 
+  writecommand(ILI9341_PUMPRAT);   // Pump ratio control
+  writedata(0x20);     // DDVDH=2xVCI
 
-  writecommand(0xEA);  
+  writecommand(ILI9341_DRVTCTRLB); // Driver Timing Control B
   writedata(0x00); 
   writedata(0x00); 
  
@@ -631,11 +639,11 @@ void ili9341_begin (void)
   writecommand(ILI9341_PWCTR2);    // Power control 2
   writedata(0x10);                 // SAP[2:0];BT[3:0]
  
-  writecommand(ILI9341_VMCTR1);    //VCM control 
+  writecommand(ILI9341_VMCTR1);    // VCM control 
   writedata(0x3e);
   writedata(0x28); 
   
-  writecommand(ILI9341_VMCTR2);    //VCM control2 
+  writecommand(ILI9341_VMCTR2);    // VCM control2 
   writedata(0x86);
  
   writecommand(ILI9341_MADCTL);    // Memory Access Control 
@@ -648,18 +656,18 @@ void ili9341_begin (void)
   writedata(0x00);                 // Division ratio (fosc)
   writedata(0x18);                 // Clocks per line 79hz (default 1B: 70Hz)
  
-  writecommand(ILI9341_DISCTRL);    // Display Function Control 
-  writedata(0x08);                  // (default 0x0A)
+  writecommand(ILI9341_DISCTRL);   // Display Function Control 
+  writedata(0x08);                 // (default 0x0A)
   writedata(0x82);
   writedata(0x27);  
  
-  writecommand(0xF2);    // 3Gamma Function Disable
+  writecommand(ILI9341_EN3GAMMA);  // 3Gamma Function Disable
   writedata(0x00);
 
-  writecommand(ILI9341_GAMMASET);    // Gamma curve select
-  writedata(0x01);                   // Gamma curve 1 (the only valid one)
+  writecommand(ILI9341_GAMMASET);  // Gamma curve select
+  writedata(0x01);                 // Gamma curve 1 (the only valid one)
 
-  writecommand(ILI9341_GMCTRP1);    //Set Gamma 
+  writecommand(ILI9341_GMCTRP1);   // Set Gamma 
   writedata(0x0F); 
   writedata(0x31); 
   writedata(0x2B); 
@@ -676,7 +684,7 @@ void ili9341_begin (void)
   writedata(0x09); 
   writedata(0x00); 
   
-  writecommand(ILI9341_GMCTRN1);    //Set Gamma 
+  writecommand(ILI9341_GMCTRN1);    // Set Gamma 
   writedata(0x00); 
   writedata(0x0E); 
   writedata(0x14); 
@@ -693,11 +701,11 @@ void ili9341_begin (void)
   writedata(0x36); 
   writedata(0x0F); 
 
-  writecommand(ILI9341_SLPOUT);    //Exit Sleep 
+  writecommand(ILI9341_SLPOUT);    // Exit Sleep 
 
   delay (120);
 
-  writecommand(ILI9341_DISPON);    //Display on 
+  writecommand(ILI9341_DISPON);    // Display on 
 }
 
 
