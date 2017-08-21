@@ -560,9 +560,17 @@ void writedata (unsigned char val)
 
 void spiwrite (unsigned char val)
 {
+#if 0
    volatile int __attribute__ ((unused)) junk;
 
    junk = SPI.transfer (val);
+#endif
+
+   while ((SPI1->regs->SR & SPI_SR_TXE) == 0)
+        ;
+
+   SPI1->regs->DR = val;
+
 #if 0
    S0SPDR = val;
    
@@ -578,7 +586,7 @@ void spiwrite (unsigned char val)
 
 void ili9341_begin (void)
 {
-  /* Configure I/O pins on LPC2119 */
+  /* Configure I/O pins */
   pinMode (SS_PIN, OUTPUT);
   pinMode (DC_PIN, OUTPUT);
   pinMode (RST_PIN, OUTPUT);
@@ -587,32 +595,25 @@ void ili9341_begin (void)
   digitalWrite (DC_PIN, HIGH);
   digitalWrite (RST_PIN, HIGH);
 
+  /* Set up SPI interface */
   SPI.begin ();
   SPI.setBitOrder (MSBFIRST);
   SPI.setDataMode (SPI_MODE0);
-  SPI.setClockDivider (SPI_CLOCK_DIV2);
-  //(0, MSBFIRST, 6, 8);
+  SPI.setClockDivider (SPI_CLOCK_DIV4);
+
+  /* Reset the ILI9341 */
   delay (20);
   digitalWrite (RST_PIN, LOW);
   delay (20);
   digitalWrite (RST_PIN, HIGH);
   delay (150);
-  
-  writecommand(0xEF); // Unknown command
-  writedata(0x03);
-  writedata(0x80);
-  writedata(0x02);
 
-  writecommand(ILI9341_PWRCTRLB);   // Power Control B
-  writedata(0x00); 
-  writedata(0XC1);   // PCEQ Enabled for power saving
-  writedata(0X30); 
+  /* Start initialising ILI9341 display chip */
+  ili9341cmd3b(0xEF, 0x03, 0x80, 0x02); // Unknown command
 
-  writecommand(ILI9341_PWRSEQ);   // Power on sequence control
-  writedata(0x64); 
-  writedata(0x03); 
-  writedata(0X12); 
-  writedata(0X81); 
+  ili9341cmd3b(ILI9341_PWRCTRLB, 0x00, 0xC1, 0x30);   // Power Control B: PCEQ Enabled for power saving
+
+  ili9341cmd4b(ILI9341_PWRSEQ, 0x64, 0x03, 0x12, 0x81);   // Power on sequence control 
  
   writecommand(ILI9341_DRVTCTRLA);   // Driver Timing Control A
   writedata(0x85);  // Gate driver non-overlap timing control, default + 1 unit
@@ -626,48 +627,31 @@ void ili9341_begin (void)
   writedata(0x34);     // REG_VD, Vcore control, 1.6V
   writedata(0x02);     // VBC, ddvdh control, 5.6V
  
-  writecommand(ILI9341_PUMPRAT);   // Pump ratio control
-  writedata(0x20);     // DDVDH=2xVCI
+  ili9341cmd1b(ILI9341_PUMPRAT, 0x20);   // Pump ratio control: DDVDH=2xVCI
 
-  writecommand(ILI9341_DRVTCTRLB); // Driver Timing Control B
-  writedata(0x00); 
-  writedata(0x00); 
+  ili9341cmd2b(ILI9341_DRVTCTRLB, 0x00, 0x00); // Driver Timing Control B
  
-  writecommand(ILI9341_PWCTR1);    // Power control 1
-  writedata(0x23);                 // VRH[5:0] 4.50V (default 4.60V 0x21)
+  ili9341cmd1b(ILI9341_PWCTR1, 0x23);    // Power control 1: VRH[5:0] 4.50V (default 4.60V 0x21)
  
-  writecommand(ILI9341_PWCTR2);    // Power control 2
-  writedata(0x10);                 // SAP[2:0];BT[3:0]
+  ili9341cmd1b(ILI9341_PWCTR2, 0x10);    // Power control 2: SAP[2:0];BT[3:0]
  
-  writecommand(ILI9341_VMCTR1);    // VCM control 
-  writedata(0x3e);
-  writedata(0x28); 
+  ili9341cmd2b(ILI9341_VMCTR1, 0x3e, 0x28); // VCM control  
   
-  writecommand(ILI9341_VMCTR2);    // VCM control2 
-  writedata(0x86);
+  ili9341cmd1b(ILI9341_VMCTR2, 0x86);    // VCM control2 
  
-  writecommand(ILI9341_MADCTL);    // Memory Access Control 
-  writedata(0x48);
+  ili9341cmd1b(ILI9341_MADCTL, 0x48);    // Memory Access Control 
 
-  writecommand(ILI9341_PIXSET);    // Pixel format set
-  writedata(0x55);                 // 16 bits/pixel for both RGB and MCU
+  ili9341cmd1b(ILI9341_PIXSET, 0x55);    // Pixel format set: 16 bits/pixel for both RGB and MCU
+
+  ili9341cmd2b(ILI9341_FRMCTR1, 0x00, 0x18); // Frame rate control: Clocks per line 79hz (default 1B: 70Hz)
+ 
+  ili9341cmd3b(ILI9341_DISCTRL, 0x08, 0x82, 0x27); // Display Function Control 
+ 
+  ili9341cmd1b(ILI9341_EN3GAMMA, 0x00);  // 3Gamma Function Disable
+
+  ili9341cmd1b(ILI9341_GAMMASET, 0x01);  // Gamma curve select: curve 1 (the only valid one)
   
-  writecommand(ILI9341_FRMCTR1);   // Frame rate control
-  writedata(0x00);                 // Division ratio (fosc)
-  writedata(0x18);                 // Clocks per line 79hz (default 1B: 70Hz)
- 
-  writecommand(ILI9341_DISCTRL);   // Display Function Control 
-  writedata(0x08);                 // (default 0x0A)
-  writedata(0x82);
-  writedata(0x27);  
- 
-  writecommand(ILI9341_EN3GAMMA);  // 3Gamma Function Disable
-  writedata(0x00);
-
-  writecommand(ILI9341_GAMMASET);  // Gamma curve select
-  writedata(0x01);                 // Gamma curve 1 (the only valid one)
-
-  writecommand(ILI9341_GMCTRP1);   // Set Gamma 
+  ili9341cmd0b(ILI9341_GMCTRP1);   // Set Gamma 
   writedata(0x0F); 
   writedata(0x31); 
   writedata(0x2B); 
@@ -684,7 +668,7 @@ void ili9341_begin (void)
   writedata(0x09); 
   writedata(0x00); 
   
-  writecommand(ILI9341_GMCTRN1);    // Set Gamma 
+  ili9341cmd0b(ILI9341_GMCTRN1);    // Set Gamma 
   writedata(0x00); 
   writedata(0x0E); 
   writedata(0x14); 
@@ -701,11 +685,11 @@ void ili9341_begin (void)
   writedata(0x36); 
   writedata(0x0F); 
 
-  writecommand(ILI9341_SLPOUT);    // Exit Sleep 
+  ili9341cmd0b(ILI9341_SLPOUT);    // Exit Sleep 
 
   delay (120);
 
-  writecommand(ILI9341_DISPON);    // Display on 
+  ili9341cmd0b(ILI9341_DISPON);    // Display on 
 }
 
 
@@ -713,32 +697,80 @@ void ili9341_begin (void)
 
 void setAddrWindow(const unsigned short int x0, const unsigned short int y0, const unsigned short int x1, const unsigned short int y1)
 {
-  writecommand(ILI9341_CASET); // Column addr set
-  writedata(x0 >> 8);
-  writedata(x0 & 0xFF);     // XSTART 
-  writedata(x1 >> 8);
-  writedata(x1 & 0xFF);     // XEND
+  ili9341cmd4b(ILI9341_CASET, x0 >> 8, x0 & 0xFF, x1 >> 8, x1 & 0xFF); // Column addr set
 
-  writecommand(ILI9341_PASET); // Row addr set
-  writedata(y0 >> 8);
-  writedata(y0 & 0xFF);     // YSTART
-  writedata(y1 >> 8);
-  writedata(y1 & 0xFF);     // YEND
+  ili9341cmd4b(ILI9341_PASET, y0 >> 8, y0 & 0xFF, y1 >> 8, y1 & 0xFF); // Row addr set
 
-  writecommand(ILI9341_RAMWR); // Enable writing to RAM
+  ili9341cmd0b(ILI9341_RAMWR); // Enable writing to RAM
 }
 
 
-void drawPixel(short int x, short int y, unsigned short int color)
+/* ili9341cmd0b --- send a command with zero parameter bytes to the ILI9341 */
+
+void ili9341cmd0b(const uint8_t cmd)
 {
-  setAddrWindow (x, y, x + 1, y + 1);
-
-  digitalWrite (DC_PIN, HIGH);
+  digitalWrite (DC_PIN, LOW);
   digitalWrite (SS_PIN, LOW);
+  spiwrite(cmd);
+  digitalWrite (DC_PIN, HIGH);
+  digitalWrite (SS_PIN, HIGH);
+}
 
-  spiwrite(color >> 8);
-  spiwrite(color);
 
+/* ili9341cmd1b --- send a command with one parameter byte to the ILI9341 */
+
+void ili9341cmd1b(const uint8_t cmd, const uint8_t b1)
+{
+  digitalWrite (DC_PIN, LOW);
+  digitalWrite (SS_PIN, LOW);
+  spiwrite(cmd);
+  digitalWrite (DC_PIN, HIGH);
+  spiwrite(b1);
+  digitalWrite (SS_PIN, HIGH);
+}
+
+
+/* ili9341cmd2b --- send a command with two parameter bytes to the ILI9341 */
+
+void ili9341cmd2b(const uint8_t cmd, const uint8_t b1, const uint8_t b2)
+{
+  digitalWrite (DC_PIN, LOW);
+  digitalWrite (SS_PIN, LOW);
+  spiwrite(cmd);
+  digitalWrite (DC_PIN, HIGH);
+  spiwrite(b1);
+  spiwrite(b2);
+  digitalWrite (SS_PIN, HIGH);
+}
+
+
+/* ili9341cmd3b --- send a command with three parameter bytes to the ILI9341 */
+
+void ili9341cmd3b(const uint8_t cmd, const uint8_t b1, const uint8_t b2, const uint8_t b3)
+{
+  digitalWrite (DC_PIN, LOW);
+  digitalWrite (SS_PIN, LOW);
+  spiwrite(cmd);
+  digitalWrite (DC_PIN, HIGH);
+  spiwrite(b1);
+  spiwrite(b2);
+  spiwrite(b3);
+  digitalWrite (SS_PIN, HIGH);
+}
+
+
+/* ili9341cmd4b --- send a command with four parameter bytes to the ILI9341 */
+
+void ili9341cmd4b(const uint8_t cmd, const uint8_t b1, const uint8_t b2, const uint8_t b3, const uint8_t b4)
+{
+  digitalWrite (DC_PIN, LOW);
+  digitalWrite (SS_PIN, LOW);
+  spiwrite(cmd);
+  digitalWrite (DC_PIN, HIGH);
+  spiwrite(b1);
+  spiwrite(b2);
+  spiwrite(b3);
+  spiwrite(b4);
   digitalWrite (SS_PIN, HIGH);
 }
 
@@ -749,6 +781,7 @@ void drawRect (const int x1, const int y1, const int w, const int h, const unsig
 {
    unsigned char hi, lo;
    int i;
+   const int nPixels = h * w;
    
    hi = colr >> 8;
    lo = colr & 0xff;
@@ -758,9 +791,9 @@ void drawRect (const int x1, const int y1, const int w, const int h, const unsig
    digitalWrite (DC_PIN, HIGH);
    digitalWrite (SS_PIN, LOW);
 
-   for (i = 0; i < (h * w); i++) {
-      spiwrite (hi);
-      spiwrite (lo);
+   for (i = 0; i < nPixels; i++) {
+      spiwrite(hi);
+      spiwrite(lo);
    }
 
    digitalWrite (SS_PIN, HIGH);
@@ -793,6 +826,22 @@ void drawTile (int x0, int y0, unsigned short int tile[8][8])
    for (y = 0; y < 8; y++)
       for (x = 0; x < 8; x++)
          drawPixel (x0 + x, y0 + y, tile[y][x]);
+}
+
+
+/* drawPixel --- draw a 1x1 rectangle on the ILI9341 */
+
+void drawPixel(short int x, short int y, unsigned short int color)
+{
+  setAddrWindow (x, y, x + 1, y + 1);
+
+  digitalWrite (DC_PIN, HIGH);
+  digitalWrite (SS_PIN, LOW);
+
+  spiwrite(color >> 8);
+  spiwrite(color);
+
+  digitalWrite (SS_PIN, HIGH);
 }
 #endif
 
