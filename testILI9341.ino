@@ -581,11 +581,36 @@ void spiwrite (unsigned char val)
 #endif
 }
 
+void spidone(void)
+{
+   while ((SPI1->regs->SR & SPI_SR_TXE) == 0)
+        ;
+#if 0
+   while ((S0SPSR & 0x80) == 0)
+      ;
+#endif
+}
 
+gpio_dev *DCdev;
+int DCset;
+int DCclr;
+gpio_dev *SSdev;
+int SSset;
+int SSclr;
+  
 /* ili9341_begin --- initialise the ILI9341 LCD controller */
 
 void ili9341_begin (void)
 {
+  // Precompute GPIO pointers and bit-masks for faster digitalWrite()
+  DCdev = PIN_MAP[DC_PIN].gpio_device;
+  DCset = 1 << PIN_MAP[DC_PIN].gpio_bit;
+  DCclr = 1 << (PIN_MAP[DC_PIN].gpio_bit + 16);
+
+  SSdev = PIN_MAP[SS_PIN].gpio_device;
+  SSset = 1 << PIN_MAP[SS_PIN].gpio_bit;
+  SSclr = 1 << (PIN_MAP[SS_PIN].gpio_bit + 16);
+  
   /* Configure I/O pins */
   pinMode (SS_PIN, OUTPUT);
   pinMode (DC_PIN, OUTPUT);
@@ -709,11 +734,21 @@ void setAddrWindow(const unsigned short int x0, const unsigned short int y0, con
 
 void ili9341cmd0b(const uint8_t cmd)
 {
-  digitalWrite (DC_PIN, LOW);
-  digitalWrite (SS_PIN, LOW);
-  spiwrite(cmd);
-  digitalWrite (DC_PIN, HIGH);
-  digitalWrite (SS_PIN, HIGH);
+  //digitalWrite (DC_PIN, LOW);
+  DCdev->regs->BSRR = DCclr;
+  
+  //digitalWrite (SS_PIN, LOW);
+  SSdev->regs->BSRR = SSclr;
+  
+  //spiwrite(cmd);
+  SPI1->regs->DR = cmd;
+  spidone();
+
+  //digitalWrite (DC_PIN, HIGH);
+  DCdev->regs->BSRR = DCset;
+  
+  //digitalWrite (SS_PIN, HIGH);
+  SSdev->regs->BSRR = SSset;
 }
 
 
@@ -763,15 +798,29 @@ void ili9341cmd3b(const uint8_t cmd, const uint8_t b1, const uint8_t b2, const u
 
 void ili9341cmd4b(const uint8_t cmd, const uint8_t b1, const uint8_t b2, const uint8_t b3, const uint8_t b4)
 {
-  digitalWrite (DC_PIN, LOW);
-  digitalWrite (SS_PIN, LOW);
-  spiwrite(cmd);
-  digitalWrite (DC_PIN, HIGH);
-  spiwrite(b1);
+  //digitalWrite (DC_PIN, LOW);
+  DCdev->regs->BSRR = DCclr;
+  
+  //digitalWrite (SS_PIN, LOW);
+  SSdev->regs->BSRR = SSclr;
+  
+  //spiwrite(cmd);
+  SPI1->regs->DR = cmd;
+  spidone();
+
+  //digitalWrite (DC_PIN, HIGH);
+  DCdev->regs->BSRR = DCset;
+  
+  //spiwrite(b1);
+  SPI1->regs->DR = b1;
   spiwrite(b2);
   spiwrite(b3);
   spiwrite(b4);
-  digitalWrite (SS_PIN, HIGH);
+  spidone();
+  spidone();
+  
+  //digitalWrite (SS_PIN, HIGH);
+  SSdev->regs->BSRR = SSset;
 }
 
 
