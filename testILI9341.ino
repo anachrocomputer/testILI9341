@@ -207,7 +207,7 @@ const int DotSize = 13;
 int DotTilt = 1;
 iliColr DotColr[7][5 * 4];
 
-void setup (void)
+void setup(void)
 {
 // int i;
    int x, y;
@@ -215,45 +215,45 @@ void setup (void)
 // iliColr colr;
 // char msg[] = "Hello, world";
 
-   Serial.begin (38400);
+   Serial.begin(38400);
    
-   Serial.println ("Hello, world\n");
+   Serial.println("Hello, world\n");
    
-   pinMode (LED_PIN, OUTPUT);
-   pinMode (PC13, OUTPUT);
+   pinMode(LED_PIN, OUTPUT);
+   pinMode(PC13, OUTPUT);
   
-   ili9341_begin ();
+   ili9341_begin();
    
-   drawRect (0, 0, MAXX, MAXY, ILI9341_BLUE);
+   drawRect(0, 0, MAXX, MAXY, ILI9341_BLUE);
 
 // for (y = 0; y < MAXY; y++)
 //    for (x = 0; x < MAXX; x++)
-//       drawPixel (x, y, 0);
+//       drawPixel(x, y, 0);
          
 // for (i = 0; i < MAXX; i++)
-//    drawPixel (i, i, ILI9341_MAGENTA);
+//    drawPixel(i, i, ILI9341_MAGENTA);
 
 // for (x = 0; x < 8; x++)
 //    for (y = 0; y < 8; y++)
-//       drawPixel (x, y, ILI9341_YELLOW);
+//       drawPixel(x, y, ILI9341_YELLOW);
          
-// delay_centi (50);
+// delay_centi(50);
    
 // for (x = 1; x < 21; x++)
 //    for (y = 1; y < 31; y++) {
-//       makeTile (  0 + x, ILI9341_RED, Tile);
-//       drawTile (x, y, Tile);
+//       makeTile(x, ILI9341_RED, Tile);
+//       drawTile(x, y, Tile);
 //    }
       
 // for (i = 0; i < strlen (msg); i++) {
-//    makeTile (msg[i], ILI9341_WHITE, Tile);
-//    drawTile (i, 0, Tile);
+//    makeTile(msg[i], ILI9341_WHITE, Tile);
+//    drawTile(i, 0, Tile);
 // }
          
-// delay_centi (100);
+// delay_centi(100);
    
 #ifdef PORTRAIT
-   drawRect (0, 0, DotSpacing * 4 * 5, DotSpacing * 7, ILI9341_BLACK);
+   drawRect(0, 0, DotSpacing * 4 * 5, DotSpacing * 7, ILI9341_BLACK);
 #else
    y = 319 - DotSpacing * 4 * 5;
    
@@ -265,7 +265,7 @@ void setup (void)
    if (w > 320)
       w = 320;
 
-   drawRect (0, y, DotSpacing * 7, w, ILI9341_BLACK);
+   drawRect(0, y, DotSpacing * 7, w, ILI9341_BLACK);
 #endif
 
    // Test some drawing functions
@@ -289,7 +289,7 @@ void setup (void)
 }
 
 
-void loop (void)
+void loop(void)
 {
    int i;
    int r, g, b;
@@ -304,13 +304,13 @@ void loop (void)
    prev_adc = -1;
    
    for (;;) {
-      hsvtorgb (&r, &g, &b, hue, MAXPRI, MAXPRI);
+      hsvtorgb(&r, &g, &b, hue, MAXPRI, MAXPRI);
 
-      colr = rgbtoili (r, g, b);
+      colr = rgbtoili(r, g, b);
 
       for (i = 0; i < 16; i++) {
          //before = T1TC;
-         show_clock (display++, colr);
+         show_clock(display++, colr);
          //after = T1TC;
          
          //putdec ("show_clock: ", ticks_to_usec (after - before), "us\n");
@@ -331,13 +331,13 @@ void loop (void)
       }
       
       // Blink two LEDs
-      if (digitalRead (LED_PIN) == LOW) {
-         digitalWrite (PC13, HIGH);
-         digitalWrite (LED_PIN, HIGH);
+      if (digitalRead(LED_PIN) == LOW) {
+         digitalWrite(PC13, HIGH);
+         digitalWrite(LED_PIN, HIGH);
       }
       else {
-         digitalWrite (PC13, LOW);
-         digitalWrite (LED_PIN, LOW);
+         digitalWrite(PC13, LOW);
+         digitalWrite(LED_PIN, LOW);
       }
          
       hue++;
@@ -347,37 +347,37 @@ void loop (void)
 
 /* show_clock --- display four digits of hex from 16-bit unsigned integer */
 
-void show_clock (const unsigned int display, const iliColr colr)
+void show_clock(const unsigned int display, const iliColr colr)
 {
 #ifdef SHOW_DOT_GRID
-  show_dot_grid (0, colr);
-  show_dot_grid (1, colr);
-  show_dot_grid (2, colr);
-  show_dot_grid (3, colr);
+  show_dot_grid(0, colr);
+  show_dot_grid(1, colr);
+  show_dot_grid(2, colr);
+  show_dot_grid(3, colr);
 #else
-  show_digit (0, (display >> 12) & 0x0f, colr);
-  show_digit (1, (display >>  8) & 0x0f, colr);
-  show_digit (2, (display >>  4) & 0x0f, colr);
-  show_digit (3, (display >>  0) & 0x0f, colr);
+  show_digit(0, (display >> 12) & 0x0f, colr);
+  show_digit(1, (display >>  8) & 0x0f, colr);
+  show_digit(2, (display >>  4) & 0x0f, colr);
+  show_digit(3, (display >>  0) & 0x0f, colr);
 #endif 
 }
 
 
 /* show_dot_grid --- for debugging, show the full 4x7 grid of dots that form the display */
 
-void show_dot_grid (int pos, const iliColr colr)
+void show_dot_grid(int pos, const iliColr colr)
 {
   int i, j;
 
   for (i = 0; i < 4; i++)
     for (j = 0; j < 7; j++)
-      show_dot ((pos * 5) + i, j, 1, colr);
+      show_dot((pos * 5) + i, j, 1, colr);
 }
 
 
 /* show_digit --- display one hex digit in a specified colour */
 
-void show_digit (int pos, const int digit, const iliColr colr)
+void show_digit(int pos, const int digit, const iliColr colr)
 {
 //     H C C I    6
 //     B     D    5
@@ -401,46 +401,46 @@ void show_digit (int pos, const int digit, const iliColr colr)
    pos *= 5;
    segs = HDSPsegtab[digit];
 
-   show_dot (pos + 0, 1, segs & A, colr);
-   show_dot (pos + 0, 2, segs & A, colr);
+   show_dot(pos + 0, 1, segs & A, colr);
+   show_dot(pos + 0, 2, segs & A, colr);
     
-   show_dot (pos + 0, 4, segs & B, colr);
-   show_dot (pos + 0, 5, segs & B, colr);
+   show_dot(pos + 0, 4, segs & B, colr);
+   show_dot(pos + 0, 5, segs & B, colr);
     
-   show_dot (pos + 1, 6, segs & C, colr);
-   show_dot (pos + 2, 6, segs & C, colr);
+   show_dot(pos + 1, 6, segs & C, colr);
+   show_dot(pos + 2, 6, segs & C, colr);
     
-   show_dot (pos + 3, 4, segs & D, colr);
-   show_dot (pos + 3, 5, segs & D, colr);
+   show_dot(pos + 3, 4, segs & D, colr);
+   show_dot(pos + 3, 5, segs & D, colr);
     
-   show_dot (pos + 3, 1, segs & E, colr);
-   show_dot (pos + 3, 2, segs & E, colr);
+   show_dot(pos + 3, 1, segs & E, colr);
+   show_dot(pos + 3, 2, segs & E, colr);
     
-   show_dot (pos + 1, 0, segs & F, colr);
-   show_dot (pos + 2, 0, segs & F, colr);
+   show_dot(pos + 1, 0, segs & F, colr);
+   show_dot(pos + 2, 0, segs & F, colr);
     
-   show_dot (pos + 1, 3, segs & G, colr);
-   show_dot (pos + 2, 3, segs & G, colr);
+   show_dot(pos + 1, 3, segs & G, colr);
+   show_dot(pos + 2, 3, segs & G, colr);
     
-   show_dot (pos + 0, 6, segs & H, colr);
+   show_dot(pos + 0, 6, segs & H, colr);
    
-   show_dot (pos + 3, 6, segs & I, colr);
+   show_dot(pos + 3, 6, segs & I, colr);
    
-   show_dot (pos + 0, 3, segs & J, colr);
+   show_dot(pos + 0, 3, segs & J, colr);
    
-   show_dot (pos + 3, 3, segs & K, colr);
+   show_dot(pos + 3, 3, segs & K, colr);
    
-   show_dot (pos + 0, 0, segs & L, colr);
+   show_dot(pos + 0, 0, segs & L, colr);
    
-   show_dot (pos + 3, 0, segs & M, colr);
+   show_dot(pos + 3, 0, segs & M, colr);
    
-   show_dot (pos + 4, 0, segs & DP, colr);
+   show_dot(pos + 4, 0, segs & DP, colr);
 }
 
 
 /* show_dot --- draw one dot that makes up the grid */
 
-void show_dot (const int dx, const int dy, const int on, iliColr colr)
+void show_dot(const int dx, const int dy, const int on, iliColr colr)
 {
 #ifdef USE_SLOW_DRAWPIXEL
    int i, j;
@@ -466,9 +466,9 @@ void show_dot (const int dx, const int dy, const int on, iliColr colr)
 #ifdef USE_SLOW_DRAWPIXEL
    for (i = 0; i < DotSize; i++)
       for (j = 0; j < DotSize; j++)
-         drawPixel (x + i, y + j, colr);
+         drawPixel(x + i, y + j, colr);
 #else
-   drawRect (x, y, DotSize, DotSize, colr);
+   drawRect(x, y, DotSize, DotSize, colr);
 #endif
 }
 
