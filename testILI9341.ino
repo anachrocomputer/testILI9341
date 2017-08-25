@@ -3,17 +3,22 @@
 #include <SPI.h>
 //#include "CHGUK01.h"
 
-#define LED_PIN   (PA3)  /* P1.16 */
+#define LED_PIN   (PA3)
 
 #define MAXPRI    (255)
 
 /* I/O port connections for ILI9341 LCD on SPI */
-#define SS_PIN (PA4)
-#define DC_PIN (PB0)
+#define SS_PIN  (PA4)
+#define DC_PIN  (PB0)
 #define RST_PIN (PB1)
 
 #define MAXX (240)
 #define MAXY (320)
+
+#define NDIGITS  (4)
+
+#define GRID_HT  (7)
+#define GRID_WD  (5)
 
 #define BAR_X (150)
 #define BAR_Y ((MAXY - BAR_HT) / 2)
@@ -204,8 +209,8 @@ iliColr Tile[8][8];
 
 const int DotSpacing = 16;
 const int DotSize = 13;
-int DotTilt = 1;
-iliColr DotColr[7][5 * 4];
+const int DotTilt = 1;
+iliColr DotColr[GRID_HT][GRID_WD * NDIGITS];
 
 void setup(void)
 {
@@ -223,7 +228,8 @@ void setup(void)
    pinMode(PC13, OUTPUT);
   
    ili9341_begin();
-   
+
+   // Clear entire display to blue
    drawRect(0, 0, MAXX, MAXY, ILI9341_BLUE);
 
 // for (y = 0; y < MAXY; y++)
@@ -253,27 +259,27 @@ void setup(void)
 // delay_centi(100);
    
 #ifdef PORTRAIT
-   drawRect(0, 0, DotSpacing * 4 * 5, DotSpacing * 7, ILI9341_BLACK);
+   drawRect(0, 0, DotSpacing * NDIGITS * GRID_WD, DotSpacing * GRID_HT, ILI9341_BLACK);
 #else
-   y = 319 - DotSpacing * 4 * 5;
+   y = (MAXY - 1) - DotSpacing * NDIGITS * GRID_WD;
    
    if (y < 0)
       y = 0;
       
-   w = DotSpacing * 4 * 5;
+   w = DotSpacing * NDIGITS * GRID_WD;
 
-   if (w > 320)
-      w = 320;
+   if (w > MAXY)
+      w = MAXY;
 
-   drawRect(0, y, DotSpacing * 7, w, ILI9341_BLACK);
+   drawRect(0, y, DotSpacing * GRID_HT, w, ILI9341_BLACK);
 #endif
 
    // Test some drawing functions
-   edgeRect(128, 0, 239, 319, ILI9341_WHITE);
-   edgeRect(129, 1, 238, 318, ILI9341_BLACK);
-   edgeRect(130, 2, 237, 317, ILI9341_WHITE);
+   edgeRect( MAXX / 2,      0, MAXX - 1, MAXY - 1, ILI9341_WHITE);
+   edgeRect((MAXX / 2) + 1, 1, MAXX - 2, MAXY - 2, ILI9341_BLACK);
+   edgeRect((MAXX / 2) + 2, 2, MAXX - 3, MAXY - 3, ILI9341_WHITE);
 
-   fillRect(200,   5, 230, 150, ILI9341_YELLOW, ILI9341_RED);
+   fillRect(200,  10, 230, 150, ILI9341_YELLOW, ILI9341_RED);
    fillRect(200, 170, 230, 310, ILI9341_BLACK, ILI9341_WHITE);
 
    // Outline the bar-graph and draw a scale
@@ -283,8 +289,8 @@ void setup(void)
      drawHline(BAR_X + BAR_WD, BAR_X + BAR_WD + 8, y - 1, ILI9341_WHITE);
    
    // Initialise dot colour array to black
-   for (y = 0; y < 7; y++)
-      for (x = 0; x < (4 * 5); x++)
+   for (y = 0; y < GRID_HT; y++)
+      for (x = 0; x < (NDIGITS * GRID_WD); x++)
          DotColr[y][x] = ILI9341_BLACK;
 }
 
@@ -296,7 +302,7 @@ void loop(void)
    unsigned char hue;
    unsigned int display;
    //unsigned long int before, after;
-   unsigned short int colr;
+   iliColr colr;
    int adc, prev_adc;
    
    display = 0xc0de;
@@ -350,10 +356,10 @@ void loop(void)
 void show_clock(const unsigned int display, const iliColr colr)
 {
 #ifdef SHOW_DOT_GRID
-  show_dot_grid(0, colr);
-  show_dot_grid(1, colr);
-  show_dot_grid(2, colr);
-  show_dot_grid(3, colr);
+  int i;
+
+  for (i = 0; i < NDIGITS; i++)
+    show_dot_grid(i, colr);
 #else
   show_digit(0, (display >> 12) & 0x0f, colr);
   show_digit(1, (display >>  8) & 0x0f, colr);
@@ -369,9 +375,9 @@ void show_dot_grid(int pos, const iliColr colr)
 {
   int i, j;
 
-  for (i = 0; i < 4; i++)
-    for (j = 0; j < 7; j++)
-      show_dot((pos * 5) + i, j, 1, colr);
+  for (i = 0; i < (GRID_WD - 1); i++)
+    for (j = 0; j < GRID_HT; j++)
+      show_dot((pos * GRID_WD) + i, j, 1, colr);
 }
 
 
@@ -388,8 +394,8 @@ void show_digit(int pos, const int digit, const iliColr colr)
 //     L F F M DP 0
 //     0 1 2 3 4
    unsigned int segs;
-   static int prevDigit[4] = {-1, -1, -1, -1};
-   static int prevColr[4] = {-1, -1, -1, -1};
+   static int prevDigit[NDIGITS] = {-1, -1, -1, -1};
+   static int prevColr[NDIGITS] = {-1, -1, -1, -1};
 
    // Save time by doing nothing if the digit is unchanged from last time
    if ((prevDigit[pos] == digit) && (prevColr[pos] == colr))
@@ -398,7 +404,7 @@ void show_digit(int pos, const int digit, const iliColr colr)
    prevDigit[pos] = digit;
    prevColr[pos] = colr;
    
-   pos *= 5;
+   pos *= GRID_WD;
    segs = HDSPsegtab[digit];
 
    show_dot(pos + 0, 1, segs & A, colr);
@@ -457,10 +463,10 @@ void show_dot(const int dx, const int dy, const int on, iliColr colr)
 
 #ifdef PORTRAIT
    x = dx * DotSpacing;
-   y = (6 - dy) * DotSpacing;
+   y = ((GRID_HT - 1) - dy) * DotSpacing;
 #else
-   x = ((6 - dy) * DotSpacing);
-   y = (319 - DotSpacing) - (dx * DotSpacing) - (dy * DotTilt);
+   x = ((GRID_HT - 1) - dy) * DotSpacing;
+   y = ((MAXY - 1) - DotSpacing) - (dx * DotSpacing) - (dy * DotTilt);
 #endif
 
 #ifdef USE_SLOW_DRAWPIXEL
