@@ -15,6 +15,11 @@
 #define MAXX (240)
 #define MAXY (320)
 
+#define BAR_X (150)
+#define BAR_Y ((MAXY - BAR_HT) / 2)
+#define BAR_HT (256)
+#define BAR_WD (25)
+
 #define ILI9341_NOP        0x00
 #define ILI9341_SWRESET    0x01
 #define ILI9341_RDDID      0x04
@@ -260,6 +265,20 @@ void setup (void)
    drawRect (0, y, DotSpacing * 7, w, ILI9341_BLACK);
 #endif
 
+   // Test some drawing functions
+   edgeRect(128, 0, 239, 319, ILI9341_WHITE);
+   edgeRect(129, 1, 238, 318, ILI9341_BLACK);
+   edgeRect(130, 2, 237, 317, ILI9341_WHITE);
+
+   fillRect(200,   5, 230, 150, ILI9341_YELLOW, ILI9341_RED);
+   fillRect(200, 170, 230, 310, ILI9341_BLACK, ILI9341_WHITE);
+
+   // Outline the bar-graph and draw a scale
+   edgeRect(BAR_X - 1, BAR_Y - 1, BAR_X + BAR_WD, BAR_Y + BAR_HT - 1, ILI9341_WHITE);
+
+   for (y = BAR_Y; y <= BAR_Y + BAR_HT; y += 16)
+     drawHline(BAR_X + BAR_WD, BAR_X + BAR_WD + 8, y - 1, ILI9341_WHITE);
+   
    // Initialise dot colour array to black
    for (y = 0; y < 7; y++)
       for (x = 0; x < (4 * 5); x++)
@@ -275,9 +294,11 @@ void loop (void)
    unsigned int display;
    //unsigned long int before, after;
    unsigned short int colr;
+   int adc, prev_adc;
    
    display = 0xc0de;
    hue = 0;
+   prev_adc = -1;
    
    for (;;) {
       hsvtorgb (&r, &g, &b, hue, MAXPRI, MAXPRI);
@@ -297,6 +318,15 @@ void loop (void)
 //       delay_centi (5);
       }
 
+      // Draw an analog bar-graph (ADC on STM32 is 0-4095)
+      adc = analogRead(0) / 16;
+
+      if (adc != prev_adc) {
+        drawRect(BAR_X, BAR_Y, BAR_WD, adc, ILI9341_RED);
+        drawRect(BAR_X, BAR_Y + adc, BAR_WD, (BAR_HT - 1) - adc, ILI9341_GREEN);
+        prev_adc = adc;
+      }
+      
       // Blink two LEDs
       if (digitalRead (LED_PIN) == LOW) {
          digitalWrite (PC13, HIGH);
@@ -440,87 +470,78 @@ void show_dot (const int dx, const int dy, const int on, unsigned short int colr
 }
 
 
-/* setVline --- draw vertical line */
+/* drawVline --- draw a vertical line */
 
-void setVline (unsigned int x, unsigned int y1, unsigned int y2)
+void drawVline(const int x, const int y1, const int y2, const unsigned short int colr)
 {
-  unsigned int y;
-  
-  for (y = y1; y <= y2; y++)
-    ;
+   unsigned char hi, lo;
+   int i;
+   const int nPixels = y2 - y1 + 1;
+   
+   hi = colr >> 8;
+   lo = colr & 0xff;
+   
+   setAddrWindow(x, y1, x, y2);
+   
+   digitalWrite(DC_PIN, HIGH);
+   digitalWrite(SS_PIN, LOW);
+
+   for (i = 0; i < nPixels; i++) {
+      spiwrite(hi);
+      spiwrite(lo);
+   }
+
+   digitalWrite(SS_PIN, HIGH);
 }
 
 
-/* clrVline --- draw vertical line */
+/* drawHline --- draw a horizontal line */
 
-void clrVline (unsigned int x, unsigned int y1, unsigned int y2)
+void drawHline(const int x1, const int x2, const int y, const unsigned short int colr)
 {
-  unsigned int y;
-  
-  for (y = y1; y <= y2; y++)
-    ;
+   unsigned char hi, lo;
+   int i;
+   const int nPixels = x2 - x1 + 1;
+   
+   hi = colr >> 8;
+   lo = colr & 0xff;
+   
+   setAddrWindow(x1, y, x2, y);
+   
+   digitalWrite(DC_PIN, HIGH);
+   digitalWrite(SS_PIN, LOW);
+
+   for (i = 0; i < nPixels; i++) {
+      spiwrite(hi);
+      spiwrite(lo);
+   }
+
+   digitalWrite(SS_PIN, HIGH);
 }
 
 
-/* setHline --- set pixels in a horizontal line */
+/* edgeRect --- set pixels in a (non-filled) rectangle */
 
-void setHline (unsigned int x1, unsigned int x2, unsigned int y)
+void edgeRect(const int x1, const int y1, const int x2, const int y2, const short int colr)
 {
-  unsigned int x;
-  
-  for (x = x1; x <= x2; x++)
-    ;
+  drawHline(x1, x2, y1, colr);
+  drawVline(x2, y1, y2, colr);
+  drawHline(x1, x2, y2, colr);
+  drawVline(x1, y1, y2, colr);
 }
 
 
-/* clrHline --- clear pixels in a horizontal line */
+/* fillRect --- set pixels in a filled rectangle using edge and fill colours */
 
-void clrHline (unsigned int x1, unsigned int x2, unsigned int y)
+void fillRect(const int x1, const int y1, const int x2, const int y2, const short int fc, const short int ec)
 {
-  unsigned int x;
+  const int w = x2 - x1 - 1;
+  const int h = y2 - y1 - 1;
 
-  if (y < MAXY) {
-    for (x = x1; x <= x2; x++)
-      ;
-  }
-}
-
-
-/* setRect --- set pixels in a (non-filled) rectangle */
-
-void setRect (int x1, int y1, int x2, int y2)
-{
-  setHline (x1, x2, y1);
-  setVline (x2, y1, y2);
-  setHline (x1, x2, y2);
-  setVline (x1, y1, y2);
-}
-
-
-/* fillRect --- set pixels in a filled rectangle */
-
-void fillRect (int x1, int y1, int x2, int y2, int ec, int fc)
-{
-  int y;
+  if ((h > 0) && (w > 0))
+    drawRect(x1 + 1, y1 + 1, w, h, fc);
   
-  for (y = y1; y <= y2; y++)
-    if (fc == 0)
-      clrHline (x1, x2, y);
-    else if (fc == 1)
-      setHline (x1, x2, y);
-  
-  if (ec == 1) {
-    setHline (x1, x2, y1);
-    setVline (x2, y1, y2);
-    setHline (x1, x2, y2);
-    setVline (x1, y1, y2);
-  }
-  else if (ec == 0) {
-    clrHline (x1, x2, y1);
-    clrVline (x2, y1, y2);
-    clrHline (x1, x2, y2);
-    clrVline (x1, y1, y2);
-  }
+  edgeRect(x1, y1, x2, y2, ec);
 }
 
 
