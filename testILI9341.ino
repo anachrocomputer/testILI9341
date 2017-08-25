@@ -161,6 +161,9 @@
 //     A     E
 //     L F F M
 
+// Create a type for a 16-bit packed RGB colour
+typedef unsigned short int iliColr;
+
 // Table of 14-segment digits 0-9 and A-F
 const unsigned int HDSPsegtab[16] = {
   A | B | C | D | E | F | J | K,         // 0
@@ -196,20 +199,20 @@ const unsigned char Segtab[10] = {
   B | C | D | E | F | G      // 9
 };
 
-unsigned short int Tile[8][8];
+iliColr Tile[8][8];
 #endif
 
 const int DotSpacing = 16;
 const int DotSize = 13;
 int DotTilt = 1;
-unsigned short int DotColr[7][5 * 4];
+iliColr DotColr[7][5 * 4];
 
 void setup (void)
 {
 // int i;
    int x, y;
    int w;
-// unsigned short int colr;
+// iliColr colr;
 // char msg[] = "Hello, world";
 
    Serial.begin (38400);
@@ -344,7 +347,7 @@ void loop (void)
 
 /* show_clock --- display four digits of hex from 16-bit unsigned integer */
 
-void show_clock (const unsigned int display, const unsigned short int colr)
+void show_clock (const unsigned int display, const iliColr colr)
 {
 #ifdef SHOW_DOT_GRID
   show_dot_grid (0, colr);
@@ -362,7 +365,7 @@ void show_clock (const unsigned int display, const unsigned short int colr)
 
 /* show_dot_grid --- for debugging, show the full 4x7 grid of dots that form the display */
 
-void show_dot_grid (int pos, const unsigned short int colr)
+void show_dot_grid (int pos, const iliColr colr)
 {
   int i, j;
 
@@ -374,7 +377,7 @@ void show_dot_grid (int pos, const unsigned short int colr)
 
 /* show_digit --- display one hex digit in a specified colour */
 
-void show_digit (int pos, const int digit, const unsigned short int colr)
+void show_digit (int pos, const int digit, const iliColr colr)
 {
 //     H C C I    6
 //     B     D    5
@@ -437,7 +440,7 @@ void show_digit (int pos, const int digit, const unsigned short int colr)
 
 /* show_dot --- draw one dot that makes up the grid */
 
-void show_dot (const int dx, const int dy, const int on, unsigned short int colr)
+void show_dot (const int dx, const int dy, const int on, iliColr colr)
 {
 #ifdef USE_SLOW_DRAWPIXEL
    int i, j;
@@ -472,7 +475,7 @@ void show_dot (const int dx, const int dy, const int on, unsigned short int colr
 
 /* drawVline --- draw a vertical line */
 
-void drawVline(const int x, const int y1, const int y2, const unsigned short int colr)
+void drawVline(const int x, const int y1, const int y2, const iliColr colr)
 {
    unsigned char hi, lo;
    int i;
@@ -497,7 +500,7 @@ void drawVline(const int x, const int y1, const int y2, const unsigned short int
 
 /* drawHline --- draw a horizontal line */
 
-void drawHline(const int x1, const int x2, const int y, const unsigned short int colr)
+void drawHline(const int x1, const int x2, const int y, const iliColr colr)
 {
    unsigned char hi, lo;
    int i;
@@ -522,7 +525,7 @@ void drawHline(const int x1, const int x2, const int y, const unsigned short int
 
 /* edgeRect --- set pixels in a (non-filled) rectangle */
 
-void edgeRect(const int x1, const int y1, const int x2, const int y2, const short int colr)
+void edgeRect(const int x1, const int y1, const int x2, const int y2, const iliColr colr)
 {
   drawHline(x1, x2, y1, colr);
   drawVline(x2, y1, y2, colr);
@@ -533,7 +536,7 @@ void edgeRect(const int x1, const int y1, const int x2, const int y2, const shor
 
 /* fillRect --- set pixels in a filled rectangle using edge and fill colours */
 
-void fillRect(const int x1, const int y1, const int x2, const int y2, const short int fc, const short int ec)
+void fillRect(const int x1, const int y1, const int x2, const int y2, const iliColr fc, const iliColr ec)
 {
   const int w = x2 - x1 - 1;
   const int h = y2 - y1 - 1;
@@ -545,72 +548,86 @@ void fillRect(const int x1, const int y1, const int x2, const int y2, const shor
 }
 
 
-/* ili9341write --- write a byte to the ILI9341 */
+/* hsvtorgb --- convert HSV colour to RGB */
 
-void ili9341write (unsigned char cmd, unsigned char val)
+void hsvtorgb(int *ir, int *ig, int *ib, const int ih, const int is, const int iv)
 {
-   volatile int __attribute__ ((unused)) junk;
-   
-   if (cmd)
-      digitalWrite (DC_PIN, LOW);
-   else
-      digitalWrite (DC_PIN, HIGH);
+   int i;
+   double p, q, t;
+   double f;
+   double h, s, v;
+   double r = 0.0, g = 0.0, b = 0.0;
 
-   digitalWrite (SS_PIN, LOW);
-   junk = SPI.transfer (val);
-#if 0
-   S0SPDR = val;
-   
-   while ((S0SPSR & 0x80) == 0)
-      ;
-      
-   junk = S0SPDR;
-#endif
-   digitalWrite (SS_PIN, HIGH);
+   // Compute H, S, V as floating-point in range 0..360, 0..1 and 0..1
+   h = (double)ih * (360.0 / (double)MAXPRI);
+   s = is / (double)MAXPRI;
+   v = iv / (double)MAXPRI;
+
+   if (is == 0) {  /* No saturation so make a grey */
+      *ir = iv;
+      *ig = iv;
+      *ib = iv;
+   }
+   else {
+      if (h >= 359.0)
+         h = 0.0;
+
+      h /= 60.0;
+      i = (int)h;
+      f = h - i;
+
+      p = v * (1.0 - s);
+      q = v * (1.0 - (s * f));
+      t = v * (1.0 - (s * (1.0 - f)));
+
+      switch (i) {
+         case 0:
+            r = v;
+            g = t;
+            b = p;
+            break;
+         case 1:
+            r = q;
+            g = v;
+            b = p;
+            break;
+         case 2:
+            r = p;
+            g = v;
+            b = t;
+            break;
+         case 3:
+            r = p;
+            g = q;
+            b = v;
+            break;
+         case 4:
+            r = t;
+            g = p;
+            b = v;
+            break;
+         case 5:
+            r = v;
+            g = p;
+            b = q;
+            break;
+      }
+
+      *ir = r * MAXPRI;
+      *ig = g * MAXPRI;
+      *ib = b * MAXPRI;
+   }
 }
 
-void writecommand (unsigned char cmd)
+
+/* rgbtoili --- convert RGB colour to packed 16-bit format */
+
+iliColr rgbtoili(const int r, const int g, const int b)
 {
-   ili9341write (1, cmd);
+  // ILI941 uses 5 bit red, 6 bit green, 5 bit blue
+  return ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
 }
 
-void writedata (unsigned char val)
-{
-   ili9341write (0, val);
-}
-
-void spiwrite (unsigned char val)
-{
-#if 0
-   volatile int __attribute__ ((unused)) junk;
-
-   junk = SPI.transfer (val);
-#endif
-
-   while ((SPI1->regs->SR & SPI_SR_TXE) == 0)
-        ;
-
-   SPI1->regs->DR = val;
-
-#if 0
-   S0SPDR = val;
-   
-   while ((S0SPSR & 0x80) == 0)
-      ;
-      
-   junk = S0SPDR;
-#endif
-}
-
-void spidone(void)
-{
-   while ((SPI1->regs->SR & SPI_SR_TXE) == 0)
-        ;
-#if 0
-   while ((S0SPSR & 0x80) == 0)
-      ;
-#endif
-}
 
 gpio_dev *DCdev;
 int DCset;
@@ -845,9 +862,77 @@ void ili9341cmd4b(const uint8_t cmd, const uint8_t b1, const uint8_t b2, const u
 }
 
 
+/* ili9341write --- write a byte to the ILI9341 */
+
+void ili9341write (unsigned char cmd, unsigned char val)
+{
+   volatile int __attribute__ ((unused)) junk;
+   
+   if (cmd)
+      digitalWrite (DC_PIN, LOW);
+   else
+      digitalWrite (DC_PIN, HIGH);
+
+   digitalWrite (SS_PIN, LOW);
+   junk = SPI.transfer (val);
+#if 0
+   S0SPDR = val;
+   
+   while ((S0SPSR & 0x80) == 0)
+      ;
+      
+   junk = S0SPDR;
+#endif
+   digitalWrite (SS_PIN, HIGH);
+}
+
+void writecommand (unsigned char cmd)
+{
+   ili9341write (1, cmd);
+}
+
+void writedata (unsigned char val)
+{
+   ili9341write (0, val);
+}
+
+void spiwrite (unsigned char val)
+{
+#if 0
+   volatile int __attribute__ ((unused)) junk;
+
+   junk = SPI.transfer (val);
+#endif
+
+   while ((SPI1->regs->SR & SPI_SR_TXE) == 0)
+        ;
+
+   SPI1->regs->DR = val;
+
+#if 0
+   S0SPDR = val;
+   
+   while ((S0SPSR & 0x80) == 0)
+      ;
+      
+   junk = S0SPDR;
+#endif
+}
+
+void spidone(void)
+{
+   while ((SPI1->regs->SR & SPI_SR_TXE) == 0)
+        ;
+#if 0
+   while ((S0SPSR & 0x80) == 0)
+      ;
+#endif
+}
+
+
 /* drawRect --- draw a rectangle in the specified colour */
 
-void drawRect (const int x1, const int y1, const int w, const int h, const unsigned short int colr)
+void drawRect (const int x1, const int y1, const int w, const int h, const iliColr colr)
 {
    unsigned char hi, lo;
    int i;
@@ -871,7 +956,7 @@ void drawRect (const int x1, const int y1, const int w, const int h, const unsig
 
 
 #if 0
-void makeTile (int asc, unsigned short int c, unsigned short int tile[8][8])
+void makeTile (int asc, unsigned short int c, iliColr tile[8][8])
 {
    int x, y;
    
@@ -914,84 +999,4 @@ void drawPixel(short int x, short int y, unsigned short int color)
   digitalWrite (SS_PIN, HIGH);
 }
 #endif
-
-
-/* hsvtorgb --- convert HSV colour to RGB */
-
-void hsvtorgb (int *ir, int *ig, int *ib, int ih, int is, int iv)
-{
-   int i;
-   double p, q, t;
-   double f;
-   double h, s, v;
-   double r = 0.0, g = 0.0, b = 0.0;
-
-   h = (double)ih * (360.0 / (double)MAXPRI);
-   s = is / (double)MAXPRI;
-   v = iv / (double)MAXPRI;
-
-   if (is == 0) {  /* No saturation so make a grey */
-      *ir = iv;
-      *ig = iv;
-      *ib = iv;
-   }
-   else {
-      if (h >= 359.0)
-         h = 0.0;
-
-      h /= 60.0;
-      i = (int)h;
-      f = h - i;
-
-      p = v * (1.0 - s);
-      q = v * (1.0 - (s * f));
-      t = v * (1.0 - (s * (1.0 - f)));
-
-      switch (i) {
-         case 0:
-            r = v;
-            g = t;
-            b = p;
-            break;
-         case 1:
-            r = q;
-            g = v;
-            b = p;
-            break;
-         case 2:
-            r = p;
-            g = v;
-            b = t;
-            break;
-         case 3:
-            r = p;
-            g = q;
-            b = v;
-            break;
-         case 4:
-            r = t;
-            g = p;
-            b = v;
-            break;
-         case 5:
-            r = v;
-            g = p;
-            b = q;
-            break;
-      }
-
-      *ir = r * MAXPRI;
-      *ig = g * MAXPRI;
-      *ib = b * MAXPRI;
-   }
-}
-
-
-/* rgbtoili --- convert RGB colour to packed 16-bit format */
-
-unsigned short int rgbtoili (const int r, const int g, const int b)
-{
-  // ILI941 uses 5 bit red, 6 bit green, 5 bit blue
-  return ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
-}
 
